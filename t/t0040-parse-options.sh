@@ -23,10 +23,13 @@ usage: test-tool parse-options <options>
     -i, --[no-]integer <n>
                           get a integer
     --[no-]i16 <n>        get a 16 bit integer
+    --[no-]ibounded <n>   get a bounded integer between [-10,10]
     --[no-]u16 <n>        get a 16 bit unsigned integer
+    --[no-]ubounded <n>   get a bounded unsigned integer between [10,100]
     -j <n>                get a integer, too
     -m, --magnitude <n>   get a magnitude
     --m16 <n>             get a 16 bit magnitude
+    --mbounded <n>        get a bounded magnitude between [10,100]
     --[no-]set23          set integer to 23
     --mode1               set integer to 1 (cmdmode option)
     --mode2               set integer to 2 (cmdmode option)
@@ -846,6 +849,36 @@ test_expect_success 'u16 does not accept negative value' '
 	test_must_fail test-tool parse-options --u16 -1 >out 2>err &&
 	test_grep "option .u16. does not accept negative values" err &&
 	test_must_be_empty out
+'
+
+test_expect_success 'ibounded does not accept outside range' '
+	test_must_fail test-tool parse-options --ibounded -11 >out 2>err &&
+	test_grep "value -11 for option .ibounded. not in range \[-10,10\]" err &&
+	test_must_fail test-tool parse-options --ibounded 11 >out 2>err &&
+	test_grep "value 11 for option .ibounded. not in range \[-10,10\]" err &&
+	test-tool parse-options --ibounded -10 &&
+	test-tool parse-options --ibounded 0 &&
+	test-tool parse-options --ibounded 10
+'
+
+test_expect_success 'ubounded does not accept outside range' '
+	test_must_fail test-tool parse-options --ubounded 9 >out 2>err &&
+	test_grep "value 9 for option .ubounded. not in range \[10,100\]" err &&
+	test_must_fail test-tool parse-options --ubounded 101 >out 2>err &&
+	test_grep "value 101 for option .ubounded. not in range \[10,100\]" err &&
+	test-tool parse-options --ubounded 10 &&
+	test-tool parse-options --ubounded 50 &&
+	test-tool parse-options --ubounded 100
+'
+
+test_expect_success 'mbounded does not accept outside range' '
+	test_must_fail test-tool parse-options --mbounded 9 >out 2>err &&
+	test_grep "value 9 for option .mbounded. not in range \[10,100\]" err &&
+	test_must_fail test-tool parse-options --mbounded 101 >out 2>err &&
+	test_grep "value 101 for option .mbounded. not in range \[10,100\]" err &&
+	test-tool parse-options --mbounded 10 &&
+	test-tool parse-options --mbounded 50 &&
+	test-tool parse-options --mbounded 100
 '
 
 test_done

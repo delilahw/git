@@ -97,6 +97,13 @@ typedef int parse_opt_subcommand_fn(int argc, const char **argv,
  *   precision of the integer pointed to by `value` in number of bytes. Should
  *   typically be its `sizeof()`.
  *
+ * `lower_bound`,`upper_bound`::
+ *   lower and upper bound of the integer to further restrict the accepted
+ *   range of integer values. `0` will use the minimum and maximum values for
+ *   the integer type of the specified precision. Specifying a bound that does
+ *   not fit into an integer type of the specified precision will trigger a
+ *   bug.
+ *
  * `argh`::
  *   token to explain the kind of argument this option wants. Does not
  *   begin in capital letter, and does not end with a full stop.
@@ -157,6 +164,8 @@ struct option {
 	const char *long_name;
 	void *value;
 	size_t precision;
+	intmax_t lower_bound;
+	uintmax_t upper_bound;
 	const char *argh;
 	const char *help;
 
@@ -225,12 +234,37 @@ struct option {
 	.help = (h), \
 	.flags = (f), \
 }
+#define OPT_INTEGER_BOUNDED_F(s, l, v, lower, upper, h, f) { \
+	.type = OPTION_INTEGER, \
+	.short_name = (s), \
+	.long_name = (l), \
+	.value = (v) + BARF_UNLESS_SIGNED(*(v)), \
+	.precision = sizeof(*v), \
+	.lower_bound = (lower), \
+	.upper_bound = (upper), \
+	.argh = N_("n"), \
+	.help = (h), \
+	.flags = (f), \
+}
+
 #define OPT_UNSIGNED_F(s, l, v, h, f) { \
 	.type = OPTION_UNSIGNED, \
 	.short_name = (s), \
 	.long_name = (l), \
 	.value = (v) + BARF_UNLESS_UNSIGNED(*(v)), \
 	.precision = sizeof(*v), \
+	.argh = N_("n"), \
+	.help = (h), \
+	.flags = (f), \
+}
+#define OPT_UNSIGNED_BOUNDED_F(s, l, v, lower, upper, h, f) { \
+	.type = OPTION_UNSIGNED, \
+	.short_name = (s), \
+	.long_name = (l), \
+	.value = (v) + BARF_UNLESS_UNSIGNED(*(v)), \
+	.precision = sizeof(*v), \
+	.lower_bound = (lower), \
+	.upper_bound = (upper), \
 	.argh = N_("n"), \
 	.help = (h), \
 	.flags = (f), \
@@ -287,7 +321,12 @@ struct option {
 #define OPT_CMDMODE(s, l, v, h, i)  OPT_CMDMODE_F(s, l, v, h, i, 0)
 
 #define OPT_INTEGER(s, l, v, h)     OPT_INTEGER_F(s, l, v, h, 0)
+#define OPT_INTEGER_BOUNDED(s, l, v, lower, upper, h) \
+	OPT_INTEGER_BOUNDED_F(s, l, v, lower, upper, h, 0)
 #define OPT_UNSIGNED(s, l, v, h)    OPT_UNSIGNED_F(s, l, v, h, 0)
+#define OPT_UNSIGNED_BOUNDED(s, l, v, lower, upper, h) \
+	OPT_UNSIGNED_BOUNDED_F(s, l, v, lower, upper, h, 0)
+
 #define OPT_MAGNITUDE(s, l, v, h) { \
 	.type = OPTION_MAGNITUDE, \
 	.short_name = (s), \
@@ -298,6 +337,19 @@ struct option {
 	.help = (h), \
 	.flags = PARSE_OPT_NONEG, \
 }
+#define OPT_MAGNITUDE_BOUNDED(s, l, v, lower, upper, h) { \
+	.type = OPTION_MAGNITUDE, \
+	.short_name = (s), \
+	.long_name = (l), \
+	.value = (v) + BARF_UNLESS_UNSIGNED(*(v)), \
+	.precision = sizeof(*v), \
+	.lower_bound = (lower), \
+	.upper_bound = (upper), \
+	.argh = N_("n"), \
+	.help = (h), \
+	.flags = PARSE_OPT_NONEG, \
+}
+
 #define OPT_STRING(s, l, v, a, h)   OPT_STRING_F(s, l, v, a, h, 0)
 #define OPT_STRING_LIST(s, l, v, a, h) { \
 	.type = OPTION_CALLBACK, \

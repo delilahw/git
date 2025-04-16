@@ -177,6 +177,20 @@ static enum parse_opt_result do_get_value(struct parse_opt_ctx_t *p,
 		intmax_t lower_bound = -upper_bound - 1;
 		intmax_t value;
 
+		if (opt->lower_bound) {
+			if (opt->lower_bound < lower_bound)
+				BUG("invalid lower bound for option %s", optname(opt, flags));
+			if (opt->lower_bound > lower_bound)
+				lower_bound = opt->lower_bound;
+		}
+
+		if (opt->upper_bound) {
+			if (opt->upper_bound > (uintmax_t)upper_bound)
+				BUG("invalid upper bound for option %s", optname(opt, flags));
+			if (opt->upper_bound < (uintmax_t)upper_bound)
+				upper_bound = opt->upper_bound;
+		}
+
 		if (unset) {
 			value = 0;
 		} else if (opt->flags & PARSE_OPT_OPTARG && !p->opt) {
@@ -225,7 +239,15 @@ static enum parse_opt_result do_get_value(struct parse_opt_ctx_t *p,
 	case OPTION_UNSIGNED:
 	{
 		uintmax_t upper_bound = UINTMAX_MAX >> (bitsizeof(uintmax_t) - CHAR_BIT * opt->precision);
+		uintmax_t lower_bound = 0;
 		uintmax_t value;
+
+		if (opt->lower_bound < 0)
+			BUG("invalid lower bound for option %s", optname(opt, flags));
+		if (opt->lower_bound > 0)
+			lower_bound = opt->lower_bound;
+		if (opt->upper_bound && opt->upper_bound < upper_bound)
+			upper_bound = opt->upper_bound;
 
 		if (unset) {
 			value = 0;
@@ -247,16 +269,16 @@ static enum parse_opt_result do_get_value(struct parse_opt_ctx_t *p,
 					     optname(opt, flags));
 			if (errno == ERANGE)
 				return error(_("value %s for %s not in range [%"PRIuMAX",%"PRIuMAX"]"),
-					     arg, optname(opt, flags), (uintmax_t)0, (uintmax_t)upper_bound);
+					     arg, optname(opt, flags), (uintmax_t)lower_bound, (uintmax_t)upper_bound);
 			if (errno)
 				return error_errno(_("value %s for %s cannot be parsed"),
 						   arg, optname(opt, flags));
 
 		}
 
-		if (value > upper_bound)
+		if (value < lower_bound || value > upper_bound)
 			return error(_("value %s for %s not in range [%"PRIuMAX",%"PRIuMAX"]"),
-				     arg, optname(opt, flags), (uintmax_t)0, (uintmax_t)upper_bound);
+				     arg, optname(opt, flags), (uintmax_t)lower_bound, (uintmax_t)upper_bound);
 
 		switch (opt->precision) {
 		case 1:
@@ -279,7 +301,15 @@ static enum parse_opt_result do_get_value(struct parse_opt_ctx_t *p,
 	case OPTION_MAGNITUDE:
 	{
 		uintmax_t upper_bound = UINTMAX_MAX >> (bitsizeof(uintmax_t) - CHAR_BIT * opt->precision);
+		uintmax_t lower_bound = 0;
 		unsigned long value;
+
+		if (opt->lower_bound < 0)
+			BUG("invalid lower bound for option %s", optname(opt, flags));
+		if (opt->lower_bound > 0)
+			lower_bound = opt->lower_bound;
+		if (opt->upper_bound && opt->upper_bound < upper_bound)
+			upper_bound = opt->upper_bound;
 
 		if (unset) {
 			value = 0;
@@ -293,9 +323,9 @@ static enum parse_opt_result do_get_value(struct parse_opt_ctx_t *p,
 				     optname(opt, flags));
 		}
 
-		if (value > upper_bound)
+		if (value < lower_bound || value > upper_bound)
 			return error(_("value %s for %s not in range [%"PRIuMAX",%"PRIuMAX"]"),
-				     arg, optname(opt, flags), (uintmax_t)0, (uintmax_t)upper_bound);
+				     arg, optname(opt, flags), (uintmax_t)lower_bound, (uintmax_t)upper_bound);
 
 		switch (opt->precision) {
 		case 1:
