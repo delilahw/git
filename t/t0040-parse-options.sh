@@ -783,4 +783,10 @@ test_expect_success 'magnitude with units but no numbers' '
 	test_must_be_empty out
 '
 
+test_expect_success 'overflowing integer' '
+	test_must_fail test-tool parse-options --integer 9223372036854775808 >out 2>err &&
+	test_grep "value .* for option .* not in range" err &&
+	test_must_be_empty out
+'
+
 test_done

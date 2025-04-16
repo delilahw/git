@@ -185,12 +185,20 @@ static enum parse_opt_result do_get_value(struct parse_opt_ctx_t *p,
 		if (!*arg)
 			return error(_("%s expects a numerical value"),
 				     optname(opt, flags));
+
+		errno = 0;
 		*(int *)opt->value = strtol(arg, (char **)&s, 10);
 		if (*s)
 			return error(_("%s expects a numerical value"),
 				     optname(opt, flags));
-		return 0;
+		if (errno == ERANGE)
+			return error(_("value %s for %s not in range [%"PRIdMAX",%"PRIdMAX"]"),
+				     arg, optname(opt, flags), (intmax_t)LONG_MIN, (intmax_t)LONG_MAX);
+		if (errno)
+			return error_errno(_("value %s for %s cannot be parsed"),
+					   arg, optname(opt, flags));
 
+		return 0;
 	case OPTION_MAGNITUDE:
 		if (unset) {
 			*(unsigned long *)opt->value = 0;
