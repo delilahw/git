@@ -25,6 +25,7 @@ usage: test-tool parse-options <options>
     --[no-]i16 <n>        get a 16 bit integer
     -j <n>                get a integer, too
     -m, --magnitude <n>   get a magnitude
+    --m16 <n>             get a 16 bit magnitude
     --[no-]set23          set integer to 23
     --mode1               set integer to 1 (cmdmode option)
     --mode2               set integer to 2 (cmdmode option)
@@ -139,6 +140,7 @@ boolean: 2
 integer: 1729
 i16: 0
 magnitude: 16384
+m16: 0
 timestamp: 0
 string: 123
 abbrev: 7
@@ -160,6 +162,7 @@ boolean: 2
 integer: 1729
 i16: 9000
 magnitude: 16384
+m16: 32768
 timestamp: 0
 string: 321
 abbrev: 10
@@ -171,7 +174,7 @@ EOF
 
 test_expect_success 'long options' '
 	test-tool parse-options --boolean --integer 1729 --i16 9000 --magnitude 16k \
-		--boolean --string2=321 --verbose --verbose --no-dry-run \
+		--m16 32k --boolean --string2=321 --verbose --verbose --no-dry-run \
 		--abbrev=10 --file fi.le --obsolete \
 		>output 2>output.err &&
 	test_must_be_empty output.err &&
@@ -184,6 +187,7 @@ test_expect_success 'abbreviate to something longer than SHA1 length' '
 	integer: 0
 	i16: 0
 	magnitude: 0
+	m16: 0
 	timestamp: 0
 	string: (not set)
 	abbrev: 100
@@ -259,6 +263,7 @@ boolean: 1
 integer: 13
 i16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: 123
 abbrev: 7
@@ -283,6 +288,7 @@ boolean: 0
 integer: 2
 i16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -351,6 +357,7 @@ boolean: 5
 integer: 4
 i16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -377,6 +384,7 @@ boolean: 1
 integer: 23
 i16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -457,6 +465,7 @@ boolean: 0
 integer: 0
 i16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -808,6 +817,13 @@ test_expect_success 'i16 limits range' '
 	test_grep "i16: -32768" out &&
 	test_must_fail test-tool parse-options --i16 -32769 2>err &&
 	test_grep "value -32769 for option .i16. not in range \[-32768,32767\]" err
+'
+
+test_expect_success 'm16 limits range' '
+	test-tool parse-options --m16 65535 >out &&
+	test_grep "m16: 65535" out &&
+	test_must_fail test-tool parse-options --m16 65536 2>err &&
+	test_grep "value 65536 for option .m16. not in range \[0,65535\]" err
 '
 
 test_done
