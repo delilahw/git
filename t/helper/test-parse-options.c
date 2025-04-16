@@ -120,7 +120,7 @@ int cmd__parse_options(int argc, const char **argv)
 	};
 	struct string_list expect = STRING_LIST_INIT_NODUP;
 	struct string_list list = STRING_LIST_INIT_NODUP;
-	uint16_t m16 = 0;
+	uint16_t m16 = 0, u16 = 0;
 	int16_t i16 = 0;
 
 	struct option options[] = {
@@ -142,6 +142,7 @@ int cmd__parse_options(int argc, const char **argv)
 		OPT_GROUP(""),
 		OPT_INTEGER('i', "integer", &integer, "get a integer"),
 		OPT_INTEGER(0, "i16", &i16, "get a 16 bit integer"),
+		OPT_UNSIGNED(0, "u16", &u16, "get a 16 bit unsigned integer"),
 		OPT_INTEGER('j', NULL, &integer, "get a integer, too"),
 		OPT_MAGNITUDE('m', "magnitude", &magnitude, "get a magnitude"),
 		OPT_MAGNITUDE(0, "m16", &m16, "get a 16 bit magnitude"),
@@ -215,6 +216,7 @@ int cmd__parse_options(int argc, const char **argv)
 	show(&expect, &ret, "boolean: %d", boolean);
 	show(&expect, &ret, "integer: %d", integer);
 	show(&expect, &ret, "i16: %"PRIdMAX, (intmax_t) i16);
+	show(&expect, &ret, "u16: %"PRIuMAX, (uintmax_t) u16);
 	show(&expect, &ret, "magnitude: %lu", magnitude);
 	show(&expect, &ret, "m16: %"PRIuMAX, (uintmax_t) m16);
 	show(&expect, &ret, "timestamp: %"PRItime, timestamp);

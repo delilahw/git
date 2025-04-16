@@ -23,6 +23,7 @@ usage: test-tool parse-options <options>
     -i, --[no-]integer <n>
                           get a integer
     --[no-]i16 <n>        get a 16 bit integer
+    --[no-]u16 <n>        get a 16 bit unsigned integer
     -j <n>                get a integer, too
     -m, --magnitude <n>   get a magnitude
     --m16 <n>             get a 16 bit magnitude
@@ -139,6 +140,7 @@ cat >expect <<\EOF
 boolean: 2
 integer: 1729
 i16: 0
+u16: 0
 magnitude: 16384
 m16: 0
 timestamp: 0
@@ -161,6 +163,7 @@ cat >expect <<\EOF
 boolean: 2
 integer: 1729
 i16: 9000
+u16: 5432
 magnitude: 16384
 m16: 32768
 timestamp: 0
@@ -173,7 +176,7 @@ file: prefix/fi.le
 EOF
 
 test_expect_success 'long options' '
-	test-tool parse-options --boolean --integer 1729 --i16 9000 --magnitude 16k \
+	test-tool parse-options --boolean --integer 1729 --i16 9000 --u16 5432 --magnitude 16k \
 		--m16 32k --boolean --string2=321 --verbose --verbose --no-dry-run \
 		--abbrev=10 --file fi.le --obsolete \
 		>output 2>output.err &&
@@ -186,6 +189,7 @@ test_expect_success 'abbreviate to something longer than SHA1 length' '
 	boolean: 0
 	integer: 0
 	i16: 0
+	u16: 0
 	magnitude: 0
 	m16: 0
 	timestamp: 0
@@ -262,6 +266,7 @@ cat >expect <<\EOF
 boolean: 1
 integer: 13
 i16: 0
+u16: 0
 magnitude: 0
 m16: 0
 timestamp: 0
@@ -287,6 +292,7 @@ cat >expect <<\EOF
 boolean: 0
 integer: 2
 i16: 0
+u16: 0
 magnitude: 0
 m16: 0
 timestamp: 0
@@ -356,6 +362,7 @@ Callback: "four", 0
 boolean: 5
 integer: 4
 i16: 0
+u16: 0
 magnitude: 0
 m16: 0
 timestamp: 0
@@ -383,6 +390,7 @@ cat >expect <<\EOF
 boolean: 1
 integer: 23
 i16: 0
+u16: 0
 magnitude: 0
 m16: 0
 timestamp: 0
@@ -464,6 +472,7 @@ cat >expect <<\EOF
 boolean: 0
 integer: 0
 i16: 0
+u16: 0
 magnitude: 0
 m16: 0
 timestamp: 0
@@ -824,6 +833,19 @@ test_expect_success 'm16 limits range' '
 	test_grep "m16: 65535" out &&
 	test_must_fail test-tool parse-options --m16 65536 2>err &&
 	test_grep "value 65536 for option .m16. not in range \[0,65535\]" err
+'
+
+test_expect_success 'u16 limits range' '
+	test-tool parse-options --u16 65535 >out &&
+	test_grep "u16: 65535" out &&
+	test_must_fail test-tool parse-options --u16 65536 2>err &&
+	test_grep "value 65536 for option .u16. not in range \[0,65535\]" err
+'
+
+test_expect_success 'u16 does not accept negative value' '
+	test_must_fail test-tool parse-options --u16 -1 >out 2>err &&
+	test_grep "option .u16. does not accept negative values" err &&
+	test_must_be_empty out
 '
 
 test_done

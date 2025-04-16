@@ -25,6 +25,7 @@ enum parse_opt_type {
 	/* options with arguments (usually) */
 	OPTION_STRING,
 	OPTION_INTEGER,
+	OPTION_UNSIGNED,
 	OPTION_MAGNITUDE,
 	OPTION_CALLBACK,
 	OPTION_LOWLEVEL_CALLBACK,
@@ -224,6 +225,16 @@ struct option {
 	.help = (h), \
 	.flags = (f), \
 }
+#define OPT_UNSIGNED_F(s, l, v, h, f) { \
+	.type = OPTION_UNSIGNED, \
+	.short_name = (s), \
+	.long_name = (l), \
+	.value = (v), \
+	.precision = sizeof(*v), \
+	.argh = N_("n"), \
+	.help = (h), \
+	.flags = (f), \
+}
 
 #define OPT_END() { \
 	.type = OPTION_END, \
@@ -276,6 +287,7 @@ struct option {
 #define OPT_CMDMODE(s, l, v, h, i)  OPT_CMDMODE_F(s, l, v, h, i, 0)
 
 #define OPT_INTEGER(s, l, v, h)     OPT_INTEGER_F(s, l, v, h, 0)
+#define OPT_UNSIGNED(s, l, v, h)    OPT_UNSIGNED_F(s, l, v, h, 0)
 #define OPT_MAGNITUDE(s, l, v, h) { \
 	.type = OPTION_MAGNITUDE, \
 	.short_name = (s), \
