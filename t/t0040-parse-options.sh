@@ -22,8 +22,14 @@ usage: test-tool parse-options <options>
 
     -i, --[no-]integer <n>
                           get a integer
+    --[no-]i16 <n>        get a 16 bit integer
+    --[no-]ibounded <n>   get a bounded integer between [-10,10]
+    --[no-]u16 <n>        get a 16 bit unsigned integer
+    --[no-]ubounded <n>   get a bounded unsigned integer between [10,100]
     -j <n>                get a integer, too
     -m, --magnitude <n>   get a magnitude
+    --m16 <n>             get a 16 bit magnitude
+    --mbounded <n>        get a bounded magnitude between [10,100]
     --[no-]set23          set integer to 23
     --mode1               set integer to 1 (cmdmode option)
     --mode2               set integer to 2 (cmdmode option)
@@ -136,7 +142,10 @@ test_expect_success 'OPT_MAGNITUDE() 3giga' '
 cat >expect <<\EOF
 boolean: 2
 integer: 1729
+i16: 0
+u16: 0
 magnitude: 16384
+m16: 0
 timestamp: 0
 string: 123
 abbrev: 7
@@ -156,7 +165,10 @@ test_expect_success 'short options' '
 cat >expect <<\EOF
 boolean: 2
 integer: 1729
+i16: 9000
+u16: 5432
 magnitude: 16384
+m16: 32768
 timestamp: 0
 string: 321
 abbrev: 10
@@ -167,8 +179,8 @@ file: prefix/fi.le
 EOF
 
 test_expect_success 'long options' '
-	test-tool parse-options --boolean --integer 1729 --magnitude 16k \
-		--boolean --string2=321 --verbose --verbose --no-dry-run \
+	test-tool parse-options --boolean --integer 1729 --i16 9000 --u16 5432 --magnitude 16k \
+		--m16 32k --boolean --string2=321 --verbose --verbose --no-dry-run \
 		--abbrev=10 --file fi.le --obsolete \
 		>output 2>output.err &&
 	test_must_be_empty output.err &&
@@ -179,7 +191,10 @@ test_expect_success 'abbreviate to something longer than SHA1 length' '
 	cat >expect <<-EOF &&
 	boolean: 0
 	integer: 0
+	i16: 0
+	u16: 0
 	magnitude: 0
+	m16: 0
 	timestamp: 0
 	string: (not set)
 	abbrev: 100
@@ -253,7 +268,10 @@ test_expect_success 'superfluous value provided: cmdmode' '
 cat >expect <<\EOF
 boolean: 1
 integer: 13
+i16: 0
+u16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: 123
 abbrev: 7
@@ -276,7 +294,10 @@ test_expect_success 'intermingled arguments' '
 cat >expect <<\EOF
 boolean: 0
 integer: 2
+i16: 0
+u16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -343,7 +364,10 @@ cat >expect <<\EOF
 Callback: "four", 0
 boolean: 5
 integer: 4
+i16: 0
+u16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -368,7 +392,10 @@ test_expect_success 'OPT_CALLBACK() and callback errors work' '
 cat >expect <<\EOF
 boolean: 1
 integer: 23
+i16: 0
+u16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -447,7 +474,10 @@ test_expect_success 'OPT_NUMBER_CALLBACK() works' '
 cat >expect <<\EOF
 boolean: 0
 integer: 0
+i16: 0
+u16: 0
 magnitude: 0
+m16: 0
 timestamp: 0
 string: (not set)
 abbrev: 7
@@ -781,6 +811,74 @@ test_expect_success 'magnitude with units but no numbers' '
 	test_must_fail test-tool parse-options --magnitude m >out 2>err &&
 	grep "non-negative integer" err &&
 	test_must_be_empty out
+'
+
+test_expect_success 'overflowing integer' '
+	test_must_fail test-tool parse-options --integer 9223372036854775808 >out 2>err &&
+	test_grep "value .* for option .* not in range" err &&
+	test_must_be_empty out
+'
+
+test_expect_success 'i16 limits range' '
+	test-tool parse-options --i16 32767 >out &&
+	test_grep "i16: 32767" out &&
+	test_must_fail test-tool parse-options --i16 32768 2>err &&
+	test_grep "value 32768 for option .i16. not in range \[-32768,32767\]" err &&
+
+	test-tool parse-options --i16 -32768 >out &&
+	test_grep "i16: -32768" out &&
+	test_must_fail test-tool parse-options --i16 -32769 2>err &&
+	test_grep "value -32769 for option .i16. not in range \[-32768,32767\]" err
+'
+
+test_expect_success 'm16 limits range' '
+	test-tool parse-options --m16 65535 >out &&
+	test_grep "m16: 65535" out &&
+	test_must_fail test-tool parse-options --m16 65536 2>err &&
+	test_grep "value 65536 for option .m16. not in range \[0,65535\]" err
+'
+
+test_expect_success 'u16 limits range' '
+	test-tool parse-options --u16 65535 >out &&
+	test_grep "u16: 65535" out &&
+	test_must_fail test-tool parse-options --u16 65536 2>err &&
+	test_grep "value 65536 for option .u16. not in range \[0,65535\]" err
+'
+
+test_expect_success 'u16 does not accept negative value' '
+	test_must_fail test-tool parse-options --u16 -1 >out 2>err &&
+	test_grep "option .u16. does not accept negative values" err &&
+	test_must_be_empty out
+'
+
+test_expect_success 'ibounded does not accept outside range' '
+	test_must_fail test-tool parse-options --ibounded -11 >out 2>err &&
+	test_grep "value -11 for option .ibounded. not in range \[-10,10\]" err &&
+	test_must_fail test-tool parse-options --ibounded 11 >out 2>err &&
+	test_grep "value 11 for option .ibounded. not in range \[-10,10\]" err &&
+	test-tool parse-options --ibounded -10 &&
+	test-tool parse-options --ibounded 0 &&
+	test-tool parse-options --ibounded 10
+'
+
+test_expect_success 'ubounded does not accept outside range' '
+	test_must_fail test-tool parse-options --ubounded 9 >out 2>err &&
+	test_grep "value 9 for option .ubounded. not in range \[10,100\]" err &&
+	test_must_fail test-tool parse-options --ubounded 101 >out 2>err &&
+	test_grep "value 101 for option .ubounded. not in range \[10,100\]" err &&
+	test-tool parse-options --ubounded 10 &&
+	test-tool parse-options --ubounded 50 &&
+	test-tool parse-options --ubounded 100
+'
+
+test_expect_success 'mbounded does not accept outside range' '
+	test_must_fail test-tool parse-options --mbounded 9 >out 2>err &&
+	test_grep "value 9 for option .mbounded. not in range \[10,100\]" err &&
+	test_must_fail test-tool parse-options --mbounded 101 >out 2>err &&
+	test_grep "value 101 for option .mbounded. not in range \[10,100\]" err &&
+	test-tool parse-options --mbounded 10 &&
+	test-tool parse-options --mbounded 50 &&
+	test-tool parse-options --mbounded 100
 '
 
 test_done

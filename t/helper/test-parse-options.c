@@ -120,20 +120,37 @@ int cmd__parse_options(int argc, const char **argv)
 	};
 	struct string_list expect = STRING_LIST_INIT_NODUP;
 	struct string_list list = STRING_LIST_INIT_NODUP;
+	uint32_t mbounded = 0, ubounded = 0;
+	uint16_t m16 = 0, u16 = 0;
+	int32_t ibounded = 0;
+	int16_t i16 = 0;
 
 	struct option options[] = {
 		OPT_BOOL(0, "yes", &boolean, "get a boolean"),
 		OPT_BOOL('D', "no-doubt", &boolean, "begins with 'no-'"),
-		{ OPTION_SET_INT, 'B', "no-fear", &boolean, NULL,
-		  "be brave", PARSE_OPT_NOARG | PARSE_OPT_NONEG, NULL, 1 },
+		{
+			.type = OPTION_SET_INT,
+			.short_name = 'B',
+			.long_name = "no-fear",
+			.value = &boolean,
+			.help = "be brave",
+			.flags = PARSE_OPT_NOARG | PARSE_OPT_NONEG,
+			.defval = 1,
+		},
 		OPT_COUNTUP('b', "boolean", &boolean, "increment by one"),
 		OPT_BIT('4', "or4", &boolean,
 			"bitwise-or boolean with ...0100", 4),
 		OPT_NEGBIT(0, "neg-or4", &boolean, "same as --no-or4", 4),
 		OPT_GROUP(""),
 		OPT_INTEGER('i', "integer", &integer, "get a integer"),
+		OPT_INTEGER(0, "i16", &i16, "get a 16 bit integer"),
+		OPT_INTEGER_BOUNDED(0, "ibounded", &ibounded, -10, 10, "get a bounded integer between [-10,10]"),
+		OPT_UNSIGNED(0, "u16", &u16, "get a 16 bit unsigned integer"),
+		OPT_UNSIGNED_BOUNDED(0, "ubounded", &ubounded, 10, 100, "get a bounded unsigned integer between [10,100]"),
 		OPT_INTEGER('j', NULL, &integer, "get a integer, too"),
 		OPT_MAGNITUDE('m', "magnitude", &magnitude, "get a magnitude"),
+		OPT_MAGNITUDE(0, "m16", &m16, "get a 16 bit magnitude"),
+		OPT_MAGNITUDE_BOUNDED(0, "mbounded", &mbounded, 10, 100, "get a bounded magnitude between [10,100]"),
 		OPT_SET_INT(0, "set23", &integer, "set integer to 23", 23),
 		OPT_CMDMODE(0, "mode1", &integer, "set integer to 1 (cmdmode option)", 1),
 		OPT_CMDMODE(0, "mode2", &integer, "set integer to 2 (cmdmode option)", 2),
@@ -155,12 +172,27 @@ int cmd__parse_options(int argc, const char **argv)
 		OPT_GROUP("Magic arguments"),
 		OPT_NUMBER_CALLBACK(&integer, "set integer to NUM",
 			number_callback),
-		{ OPTION_COUNTUP, '+', NULL, &boolean, NULL, "same as -b",
-		  PARSE_OPT_NOARG | PARSE_OPT_NONEG | PARSE_OPT_NODASH },
-		{ OPTION_COUNTUP, 0, "ambiguous", &ambiguous, NULL,
-		  "positive ambiguity", PARSE_OPT_NOARG | PARSE_OPT_NONEG },
-		{ OPTION_COUNTUP, 0, "no-ambiguous", &ambiguous, NULL,
-		  "negative ambiguity", PARSE_OPT_NOARG | PARSE_OPT_NONEG },
+		{
+			.type = OPTION_COUNTUP,
+			.short_name = '+',
+			.value = &boolean,
+			.help = "same as -b",
+			.flags = PARSE_OPT_NOARG | PARSE_OPT_NONEG | PARSE_OPT_NODASH,
+		},
+		{
+			.type = OPTION_COUNTUP,
+			.long_name = "ambiguous",
+			.value = &ambiguous,
+			.help = "positive ambiguity",
+			.flags = PARSE_OPT_NOARG | PARSE_OPT_NONEG,
+		},
+		{
+			.type = OPTION_COUNTUP,
+			.long_name = "no-ambiguous",
+			.value = &ambiguous,
+			.help = "negative ambiguity",
+			.flags = PARSE_OPT_NOARG | PARSE_OPT_NONEG,
+		},
 		OPT_GROUP("Standard options"),
 		OPT__ABBREV(&abbrev),
 		OPT__VERBOSE(&verbose, "be verbose"),
@@ -188,7 +220,10 @@ int cmd__parse_options(int argc, const char **argv)
 	}
 	show(&expect, &ret, "boolean: %d", boolean);
 	show(&expect, &ret, "integer: %d", integer);
+	show(&expect, &ret, "i16: %"PRIdMAX, (intmax_t) i16);
+	show(&expect, &ret, "u16: %"PRIuMAX, (uintmax_t) u16);
 	show(&expect, &ret, "magnitude: %lu", magnitude);
+	show(&expect, &ret, "m16: %"PRIuMAX, (uintmax_t) m16);
 	show(&expect, &ret, "timestamp: %"PRItime, timestamp);
 	show(&expect, &ret, "string: %s", string ? string : "(not set)");
 	show(&expect, &ret, "abbrev: %d", abbrev);
